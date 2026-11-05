@@ -15,6 +15,7 @@
 	var ytSaveDirty = false;
 	var ytSaveTimer = null;
 	var ytUnblocked = false;        // window.lang выставлен, игра может выходить с экрана загрузки
+	var ytGameReadyDone = false;    // gameReady вызван (ядром или страховкой)
 	var ytPaused = false;
 	var ytPendingRafs = [];         // колбэки rAF, пришедшие во время паузы (первый — цепочка игрового цикла GWT)
 	var ytAudioOff = false;
@@ -47,6 +48,7 @@
 		if (portal === 'youtube') {
 			// firstFrameReady() уже вызван при инициализации моста; здесь игра интерактивна —
 			// экран загрузки убран, YouTube снимет свой спиннер
+			ytGameReadyDone = true;
 			if (ytOK) {
 				try { ytgame.game.gameReady(); } catch (e) { console.log('YT gameReady failed:', e); }
 			}
@@ -249,6 +251,15 @@
 			// Язык для YouTube — английский по умолчанию (требование площадки);
 			// сохранённый выбор игрока ядро возьмёт из восстановленных настроек сейва
 			if (!window.lang) { window.lang = 'en'; }
+			// Страховка для ядер без GameReady (sudoku, mahjong): через 2с после снятия
+			// экрана загрузки зовём gameReady сами — YouTube требует его обязательно
+			if (ytOK) {
+				setTimeout(function () {
+					if (!ytGameReadyDone) {
+						try { ytgame.game.gameReady(); console.log('YT gameReady: fallback'); } catch (e) {}
+					}
+				}, 2000);
+			}
 		}
 
 		function ytApplyMute() {
